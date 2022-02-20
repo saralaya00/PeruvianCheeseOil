@@ -11,9 +11,13 @@ from datetime import date
 class DiscordClient(discord.Client):
   #big-brain-coding channel id
   CHANNEL_ID = 938668885316628502
-
-  # db[source.name] = todate
   sources = [
+    {
+      "name" : "leetcode",
+      "problem_source" : "https://raw.githubusercontent.com/fishercoder1534/Leetcode/master/README.md", # md source, backup in https://github.com/saralaya00/Leetcode
+      "problem_dest" : "https://leetcode.com/problems/", # Not required for now
+      "msg_template" : "**Leetcode - Random daily**\n{problem_num} - {problem_title} ||**{difficulty}**||\n{link}"
+    },
     {
       "name" : "codechef",
       "problem_source" : "https://www.codechef.com",
@@ -24,7 +28,7 @@ class DiscordClient(discord.Client):
       "name" : "codeforces",
       "problem_source" : "https://codeforces.com/api/problemset.problems", # API Source where we can get the problemset json (manually used for now)
       "problem_dest" : "https://codeforces.com/problemset/problem",
-      "msg_template" : "**Codeforces - Random daily**\nTitle: {problem_title}\nTags: ||{tags}||\n{link}"
+      "msg_template" : "**Codeforces - Random daily**\n{problem_title}\n||{tags}||\n{link}"
     }
   ]
 
@@ -67,18 +71,42 @@ class DiscordClient(discord.Client):
     if message.author.id == self.user.id:
       return
 
-    if "bot" in message.content.lower():
-      if any(element in message.content.lower() for element in ["thank you", "thanks", "arigato", "good"]):
-        await message.channel.send(":D")
-      elif any(element in message.content.lower() for element in ["bad", "stupid"]):
-        await message.channel.send(":(")
-      else:
-        await message.channel.send("Let's go to the mall, today!")
+    message_content = message.content.lower()
+    if "bot" in message_content:
+      if "help" in message_content:
+        help_msg = """
+*BigBrainBot* is a discord bot made to replace warwolf.
+Automatically drops daily coding problems every three hours.
+Use *bot get* command with any source (leetcode, codechef, codeforces) to get problems."""
+        await message.channel.send(help_msg)
+        return 
 
-    if "solution" and "github.com" in message.content.lower():
+      if "get" in message_content:
+        source_name_list = ["leetcode", "codechef", "codeforces"]
+        for source_name in source_name_list:
+          if source_name in message_content:
+            index = source_name_list.index(source_name)
+            source = self.sources[index]
+            problem = helper.scrape_daily_problem(source)
+            msg = problem['msg']
+            await message.channel.send(msg)
+            return
+      if any(element in message_content for element in ["thank you", "thanks", "arigato", "good"]):
+        await message.channel.send(":D")
+        return
+
+      if any(element in message_content for element in ["bad"]):
+        await message.channel.send(":(")
+        return
+
+      await message.channel.send("Use *bot help* to get info.")
+      return
+
+    if "solution" and "github.com" in message_content:
       messages_str = ['⊂(・▽・⊂)', 'mah man!', 'ayy', 'geng geng']
       reply = random.choice(messages_str)
       await message.channel.send(reply)
+      return
 
 keep_alive()
 client = DiscordClient()
