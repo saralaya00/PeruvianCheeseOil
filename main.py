@@ -32,6 +32,16 @@ class DiscordClient(discord.Client):
     }
   ]
 
+  HELP_MSG_STRING = """
+*BigBrainBot* is a discord bot made to replace warwolf.
+Automatically drops daily coding problems every three hours.
+
+Use **bot :get** command with any source (leetcode, codechef, codeforces) to get problems.
+Use **bot :solution** followed by a github.com link to get a point.
+Use **bot :mypoints** command to get your Bigbrain points.
+Use **bot :deletepoints** command to delete your Bigbrain points.
+**bot :help** displays this message."""
+
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
 
@@ -71,17 +81,40 @@ class DiscordClient(discord.Client):
     if message.author.id == self.user.id:
       return
 
+    author_id = f"{message.author.id}"
     message_content = message.content.lower()
+
     if "bot" in message_content:
-      if "help" in message_content:
-        help_msg = """
-*BigBrainBot* is a discord bot made to replace warwolf.
-Automatically drops daily coding problems every three hours.
-Use *bot get* command with any source (leetcode, codechef, codeforces) to get problems."""
-        await message.channel.send(help_msg)
+      if ":help" in message_content:
+        await message.channel.send(self.HELP_MSG_STRING)
         return 
 
-      if "get" in message_content:
+      if ":mypoints" in message_content:
+        if author_id in db.keys():
+          points = db[author_id]
+        else:
+          points = 0
+        await message.channel.send(f"Your have {points} points.")
+        return
+
+      if ":deletepoints" in message_content:
+        if author_id in db.keys():
+          del db[author_id]
+        await message.channel.send("points deleted.")
+        return
+
+      if ":solution" and "github.com" in message_content:
+        if not author_id in db.keys():
+          db[author_id] = 1
+        else:
+          db[author_id] += 1
+
+        messages_str = ['⊂(・▽・⊂)', 'mah man!', 'ayy', 'geng geng']
+        reply = random.choice(messages_str)
+        await message.channel.send(reply)
+        return
+
+      if ":get" in message_content:
         source_name_list = ["leetcode", "codechef", "codeforces"]
         for source_name in source_name_list:
           if source_name in message_content:
@@ -91,6 +124,7 @@ Use *bot get* command with any source (leetcode, codechef, codeforces) to get pr
             msg = problem['msg']
             await message.channel.send(msg)
             return
+
       if any(element in message_content for element in ["thank you", "thanks", "arigato", "good"]):
         await message.channel.send(":D")
         return
@@ -99,13 +133,7 @@ Use *bot get* command with any source (leetcode, codechef, codeforces) to get pr
         await message.channel.send(":(")
         return
 
-      await message.channel.send("Use *bot help* to get info.")
-      return
-
-    if "solution" and "github.com" in message_content:
-      messages_str = ['⊂(・▽・⊂)', 'mah man!', 'ayy', 'geng geng']
-      reply = random.choice(messages_str)
-      await message.channel.send(reply)
+      await message.channel.send("Use *bot :help* to get bot info.")
       return
 
 keep_alive()
